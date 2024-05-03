@@ -73,6 +73,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Generate Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: "${{ secrets.BOT_APP_ID }}"
+          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
+
       - name: Get pkgs release tag
         id: pkgs-release
         run: |
@@ -84,7 +91,7 @@ jobs:
         with:
           repository: siderolabs/pkgs
           ref: ${{ steps.pkgs-release.outputs.release }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
       - name: Checkout patches
@@ -92,14 +99,13 @@ jobs:
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.sha }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           path: patches
           sparse-checkout: patches/pkgs
           sparse-checkout-cone-mode: false
 
       - name: Apply patches
         run: |
-          cat kernel/build/pkg.yaml
           while IFS= read -r file; do
             echo "==> Adding $file"
             git apply -v $file
@@ -123,7 +129,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Build kernel image
         run: |
@@ -140,12 +146,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Generate Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: "${{ secrets.BOT_APP_ID }}"
+          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           repository: siderolabs/talos
           ref: refs/tags/${{ needs.check-releases.outputs.talosReleaseTag }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
       - name: Checkout patches
@@ -153,7 +166,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.sha }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           path: patches
           sparse-checkout: patches/talos
           sparse-checkout-cone-mode: false
@@ -176,7 +189,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Build installer image
         run: |
@@ -246,7 +259,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: imjasonh/setup-crane@v0.3
       - name: Push installer image
