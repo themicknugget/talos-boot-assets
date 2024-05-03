@@ -189,7 +189,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          token: ${{ steps.app-token.outputs.token }}
+          password: ${{ steps.app-token.outputs.token }}
 
       - name: Build installer image
         run: |
@@ -259,7 +259,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          token: ${{ steps.app-token.outputs.token }}
+          password: ${{ steps.app-token.outputs.token }}
 
       - uses: imjasonh/setup-crane@v0.3
       - name: Push installer image
