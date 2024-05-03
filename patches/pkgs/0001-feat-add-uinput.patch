@@ -1,14 +1,13 @@
 diff --git a/kernel/build/pkg.yaml b/kernel/build/pkg.yaml
-index f486371..0737311 100644
+index 35f0e38..8ae5856 100644
 --- a/kernel/build/pkg.yaml
 +++ b/kernel/build/pkg.yaml
-@@ -13,6 +13,9 @@ steps:
+@@ -12,6 +12,8 @@ steps:
+         cd /src
          cp -v /pkg/config-${CARCH} .config
          cp -v /pkg/certs/* certs/
- 
 +        # custom kernel options
 +        scripts/config --module CONFIG_INPUT_UINPUT
-+
-         # https://bugzilla.kernel.org/show_bug.cgi?id=218647
-         patch -p1 < /pkg/patches/btf_ids.patch
      build:
+       {{ if .BUILD_ARG_KERNEL_TARGET }}
+       - |
