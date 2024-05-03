@@ -99,6 +99,7 @@ jobs:
 
       - name: Apply patches
         run: |
+          cat kernel/build/pkg.yaml
           while IFS= read -r file; do
             echo "==> Adding $file"
             git apply -v $file
