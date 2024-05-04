@@ -67,6 +67,7 @@ jobs:
       talosReleaseBody: ${{ steps.talos-release-body.outputs.talos_release_body }}
 
   build-boot-assets:
+    needs: [ check-releases ]
     if: github.event_name == 'workflow_dispatch'
     name: Build boot assets
     runs-on: ubuntu-latest
