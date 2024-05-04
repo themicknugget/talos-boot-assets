@@ -8,6 +8,7 @@ index 35f0e38..8ae5856 100644
          cp -v /pkg/certs/* certs/
 +        # custom kernel options
 +        scripts/config --module CONFIG_INPUT_UINPUT
++        scripts/config --disable CONFIG_MODULE_SIG
      build:
        {{ if .BUILD_ARG_KERNEL_TARGET }}
        - |
