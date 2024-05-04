@@ -26,7 +26,7 @@ env:
 jobs:
   check-releases:
     name: Check for new releases
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest
 
     steps:
       - name: Fetch Talos release version
@@ -72,7 +72,7 @@ jobs:
     needs: [ check-releases ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
     name: Build kernel image
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -117,12 +117,12 @@ jobs:
             git apply -v $file
           done < <(find "./patches/patches/pkgs" -type f -name "*.patch" | sort)
 
-      # - name: Maximize build space
-      #   uses: jlumbroso/free-disk-space@main
-      #   with:
-      #     large-packages: true
-      #     docker-images: true
-      #     swap-storage: true
+      - name: Maximize build space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -149,7 +149,7 @@ jobs:
     needs: [ check-releases, build-kernel ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
     name: Build installer image
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -214,7 +214,7 @@ jobs:
     needs: [ check-releases, build-installer ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
     name: Build boot assets
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest
 
     permissions:
       contents: write
@@ -246,7 +246,7 @@ jobs:
   push-installer-image:
     needs: [ check-releases, build-boot-assets ]
     name: Push installer image
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -284,7 +284,7 @@ jobs:
     needs: [ check-releases, push-installer-image ]
     if: needs.check-releases.outputs.newTalosReleaseFound
     name: Create a new release
-    runs-on: gha-runner-scale-set
+    runs-on: ubuntu-latest
 
     permissions:
       contents: write
