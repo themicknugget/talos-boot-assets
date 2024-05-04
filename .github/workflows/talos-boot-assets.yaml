@@ -139,7 +139,7 @@ jobs:
 
       - name: Build kernel image
         run: |
-          make kernel \
+          make kernel nonfree-kmod-nvidia \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
@@ -232,7 +232,7 @@ jobs:
             --arch amd64 \
             --base-installer-image ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }} \
             --system-extension-image ghcr.io/siderolabs/amd-ucode:${{ env.AMD_UCODE_VERSION }} \
-            --system-extension-image ghcr.io/siderolabs/nonfree-kmod-nvidia:${{ env.NONFREE_KMOD_NVIDIA_VERSION }} \
+            --system-extension-image ghcr.io/themicknugget/nonfree-kmod-nvidia:${{ env.NONFREE_KMOD_NVIDIA_VERSION }} \
             --system-extension-image ghcr.io/siderolabs/nvidia-container-toolkit:${{ env.NVIDIA_CONTAINER_TOOLKIT_VERSION }}
 
       - name: Upload installer artifact
