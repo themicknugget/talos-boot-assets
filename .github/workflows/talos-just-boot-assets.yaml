@@ -137,7 +137,7 @@ jobs:
 
       - name: Build extensions
         run: |
-          make amd-ucide nvidia-container-toolkit nonfree-kmod-nvidia \
+          make amd-ucode nvidia-container-toolkit nonfree-kmod-nvidia \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
