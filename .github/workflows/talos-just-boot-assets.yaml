@@ -137,21 +137,7 @@ jobs:
 
       - name: Build extensions
         run: |
-          make \
-            PLATFORM=linux/amd64 \
-            USERNAME="${{ github.actor }}" \
-            TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
-
-      - name: Build nonfree extensions
-        run: |
-          make nonfree \
-            PLATFORM=linux/amd64 \
-            USERNAME="${{ github.actor }}" \
-            TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
-
-      - name: Build extension packages
-        run: |
-          make extensions \
+          make amd-ucide nvidia-container-toolkit nonfree-kmod-nvidia \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
