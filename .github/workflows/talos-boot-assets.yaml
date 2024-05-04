@@ -12,7 +12,7 @@ on:
     - cron: "0 * * * *"
 
 concurrency:
-  group: ${{ github.actor }}-build
+  group: ${{ github.actor }}-${{ inputs.version }}-build
 
 env:
   TALOS_VERSION : "${{ inputs.version || 'latest' }}"
