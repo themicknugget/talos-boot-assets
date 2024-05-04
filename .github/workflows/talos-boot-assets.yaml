@@ -26,7 +26,7 @@ env:
 jobs:
   check-releases:
     name: Check for new releases
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
 
     steps:
       - name: Fetch Talos release version
@@ -72,7 +72,7 @@ jobs:
     needs: [ check-releases ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
     name: Build kernel image
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
 
     permissions:
       contents: read
@@ -149,7 +149,7 @@ jobs:
     needs: [ check-releases, build-kernel ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
     name: Build installer image
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
 
     permissions:
       contents: read
@@ -214,7 +214,7 @@ jobs:
     needs: [ check-releases, build-installer ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
     name: Build boot assets
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
 
     permissions:
       contents: write
@@ -246,7 +246,7 @@ jobs:
   push-installer-image:
     needs: [ check-releases, build-boot-assets ]
     name: Push installer image
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
 
     permissions:
       contents: read
@@ -284,7 +284,7 @@ jobs:
     needs: [ check-releases, push-installer-image ]
     if: needs.check-releases.outputs.newTalosReleaseFound
     name: Create a new release
-    runs-on: ubuntu-latest
+    runs-on: gha-runner-scale-set
 
     permissions:
       contents: write
