@@ -139,7 +139,7 @@ jobs:
 
       - name: Build kernel image
         run: |
-          make kernel nonfree-kmod-nvidia \
+          make kernel nonfree-kmod-nvidia-pkg \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
