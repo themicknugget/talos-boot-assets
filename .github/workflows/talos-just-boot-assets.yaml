@@ -14,12 +14,6 @@ concurrency:
 
 env:
   TALOS_VERSION : "${{ inputs.version || 'latest' }}"
-  # renovate: depName=ghcr.io/siderolabs/amd-ucode
-  AMD_UCODE_VERSION: 20240312
-  # renovate: depName=ghcr.io/siderolabs/nonfree-kmod-nvidia
-  NONFREE_KMOD_NVIDIA_VERSION: 535.129.03-v1.6.7
-  # renovate: depName=ghcr.io/siderolabs/nvidia-container-toolkit
-  NVIDIA_CONTAINER_TOOLKIT_VERSION: 535.129.03-v1.13.5
 
 jobs:
   check-releases:
@@ -75,6 +69,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    outputs:
+      linux-firmware-version: ${{ steps.build-extensions.outputs.linux-firmware-version }}
+      nvidia-driver-version: ${{ steps.build-extensions.outputs.nvidia-driver-version }}
+      container-toolkit-version: ${{ steps.build-extensions.outputs.container-toolkit-version }}
 
     steps:
       - name: Generate Token
@@ -136,12 +135,16 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build extensions
+        id: build-extensions
         run: |
           make amd-ucode nvidia-container-toolkit nonfree-kmod-nvidia \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
             PUSH="true"
+          echo "linux-firmware-version=$(grep 'LINUX_FIRMWARE_VERSION:' Pkgfile | sed -E 's/.*"([^"]+)".*/\1/')" >> $GITHUB_OUTPUT
+          echo "nvidia-driver-version=version=$(grep 'NVIDIA_DRIVER_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([0-9.]+)/\1/')" >> $GITHUB_OUTPUT
+          echo "container-toolkit-version=version=$(grep 'CONTAINER_TOOLKIT_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([0-9.]+)/\1/')" >> $GITHUB_OUTPUT
 
   build-boot-assets:
     needs: [ check-releases, build-extensions ]
@@ -164,9 +167,9 @@ jobs:
           /bin/imager installer \
             --arch amd64 \
             --base-installer-image ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }} \
-            --system-extension-image ghcr.io/themicknugget/amd-ucode:${{ needs.check-releases.outputs.talosReleaseTag }} \
-            --system-extension-image ghcr.io/themicknugget/nonfree-kmod-nvidia:${{ needs.check-releases.outputs.talosReleaseTag }}
-            --system-extension-image ghcr.io/themicknugget/nvidia-container-toolkit:${{ needs.check-releases.outputs.talosReleaseTag }}
+            --system-extension-image ghcr.io/themicknugget/amd-ucode:${{ env.AMD_UCODE}}
+            --system-extension-image ghcr.io/themicknugget/nonfree-kmod-nvidia:${{ needs.build-extensions.outputs.nvidia-driver-version }}-${{ needs.check-releases.outputs.talosReleaseTag }}
+            --system-extension-image ghcr.io/themicknugget/nvidia-container-toolkit:${{ needs.build-extensions.outputs.nvidia-driver-version }}-${{ needs.build-extensions.outputs.container-toolkit-version }}
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v3
