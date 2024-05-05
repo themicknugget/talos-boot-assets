@@ -328,7 +328,7 @@ jobs:
             ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }}
 
   build-boot-assets:
-    needs: [ check-releases, build-kernel, build-extensions, build-installer ]
+    needs: [ check-releases, build-kernel, build-extensions, push-installer-image ]
     if: github.event_name == 'workflow_dispatch'
     name: Build boot assets
     runs-on: ubuntu-latest
