@@ -291,7 +291,7 @@ jobs:
             PUSH="true"
 
   push-installer-image:
-    needs: [ check-releases, build-installer ]
+    needs: [ build-installer ]
     name: Push installer image
     runs-on: ubuntu-latest
 
