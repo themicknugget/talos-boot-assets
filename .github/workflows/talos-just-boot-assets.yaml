@@ -167,7 +167,7 @@ jobs:
           /bin/imager installer \
             --arch amd64 \
             --base-installer-image ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }} \
-            --system-extension-image ghcr.io/themicknugget/amd-ucode:${{ env.AMD_UCODE}}
+            --system-extension-image ghcr.io/themicknugget/amd-ucode:${{ needs.build-extensions.outputs.linux-firmware-version }}
             --system-extension-image ghcr.io/themicknugget/nonfree-kmod-nvidia:${{ needs.build-extensions.outputs.nvidia-driver-version }}-${{ needs.check-releases.outputs.talosReleaseTag }}
             --system-extension-image ghcr.io/themicknugget/nvidia-container-toolkit:${{ needs.build-extensions.outputs.nvidia-driver-version }}-${{ needs.build-extensions.outputs.container-toolkit-version }}
 
