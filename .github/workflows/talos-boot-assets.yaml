@@ -362,7 +362,7 @@ jobs:
 
   push-installer-image-final:
     needs: [ push-installer-image, build-boot-assets ]
-    name: Push installer image
+    name: Push (Final) installer image
     runs-on: ubuntu-latest
 
     permissions:
