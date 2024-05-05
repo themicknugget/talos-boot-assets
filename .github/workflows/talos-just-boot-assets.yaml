@@ -144,8 +144,8 @@ jobs:
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
             PUSH="true"
           echo "linux-firmware-version=$(grep 'LINUX_FIRMWARE_VERSION:' Pkgfile | sed -E 's/.*"([^"]+)".*/\1/')" >> $GITHUB_OUTPUT
-          echo "nvidia-driver-version=version=$(grep 'NVIDIA_DRIVER_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([0-9.]+)/\1/')" >> $GITHUB_OUTPUT
-          echo "container-toolkit-version=version=$(grep 'CONTAINER_TOOLKIT_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([0-9.]+)/\1/')" >> $GITHUB_OUTPUT
+          echo "nvidia-driver-version=$(grep 'NVIDIA_DRIVER_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([^"]+).*/\1/')" >> $GITHUB_OUTPUT
+          echo "container-toolkit-version=$(grep 'CONTAINER_TOOLKIT_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([^"]+).*/\1/')" >> $GITHUB_OUTPUT
 
   build-boot-assets:
     needs: [ check-releases, build-extensions ]
