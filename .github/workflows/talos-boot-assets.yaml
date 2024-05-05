@@ -16,12 +16,6 @@ concurrency:
 
 env:
   TALOS_VERSION : "${{ inputs.version || 'latest' }}"
-  # renovate: depName=ghcr.io/siderolabs/amd-ucode
-  AMD_UCODE_VERSION: 20240312
-  # renovate: depName=ghcr.io/siderolabs/nonfree-kmod-nvidia
-  NONFREE_KMOD_NVIDIA_VERSION: 535.129.03-v1.6.7
-  # renovate: depName=ghcr.io/siderolabs/nvidia-container-toolkit
-  NVIDIA_CONTAINER_TOOLKIT_VERSION: 535.129.03-v1.13.5
 
 jobs:
   check-releases:
