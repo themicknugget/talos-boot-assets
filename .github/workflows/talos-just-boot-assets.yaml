@@ -137,6 +137,7 @@ jobs:
       - name: Build extensions
         id: build-extensions
         run: |
+          sed -i -E "s#- image: .+#- image: ghcr.io/${{ github.actor }}/nonfree-kmod-nvidia-pkg:${{ needs.check-releases.outputs.talosReleaseTag }}#" nvidia-gpu/nonfree/kmod-nvidia/pkg.yaml
           make amd-ucode nvidia-container-toolkit nonfree-kmod-nvidia \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
