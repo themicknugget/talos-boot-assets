@@ -324,7 +324,7 @@ jobs:
           retention-days: 1
 
   push-installer-image:
-    needs: [ build-boot-assets ]
+    needs: [ check-releases, build-boot-assets ]
     name: Push installer image
     runs-on: ubuntu-latest
 
