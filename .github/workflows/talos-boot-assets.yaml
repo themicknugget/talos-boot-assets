@@ -139,7 +139,7 @@ jobs:
 
       - name: Build kernel image
         run: |
-          make kernel amd-ucode nonfree-kmod-nvidia-pkg nvidia-container-toolkit \
+          make kernel nonfree-kmod-nvidia-pkg \
             PLATFORM=linux/amd64 \
             USERNAME="${{ github.actor }}" \
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
