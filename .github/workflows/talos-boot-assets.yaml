@@ -145,6 +145,86 @@ jobs:
             TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
             PUSH="true"
 
+  build-extensions:
+    needs: [ check-releases, build-kernel ]
+    if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
+    name: Build talos extensions
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      linux-firmware-version: ${{ steps.build-extensions.outputs.linux-firmware-version }}
+      nvidia-driver-version: ${{ steps.build-extensions.outputs.nvidia-driver-version }}
+      container-toolkit-version: ${{ steps.build-extensions.outputs.container-toolkit-version }}
+
+    steps:
+      - name: Generate Token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: "${{ secrets.BOT_APP_ID }}"
+          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
+
+      - name: Get extensions release tag
+        id: extensions-release
+        run: |
+          release=release-$(grep -Eo '[0-9]\.[0-9]+' <<< '${{ needs.check-releases.outputs.talosReleaseTag }}')
+          echo "release=$release" >> $GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: siderolabs/extensions
+          ref: ${{ steps.extensions-release.outputs.release }}
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Checkout patches
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          token: ${{ steps.app-token.outputs.token }}
+          path: patches
+          sparse-checkout: patches/extensions
+          sparse-checkout-cone-mode: false
+
+      - name: Apply patches
+        run: |
+          while IFS= read -r file; do
+            echo "==> Adding $file"
+            git apply -v $file
+          done < <(find "./patches/patches/extensions" -type f -name "*.patch" | sort)
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build extensions
+        id: build-extensions
+        run: |
+          sed -i -E "s#- image: .+#- image: ghcr.io/${{ github.actor }}/nonfree-kmod-nvidia-pkg:${{ needs.check-releases.outputs.talosReleaseTag }}#" nvidia-gpu/nonfree/kmod-nvidia/pkg.yaml
+          make amd-ucode nvidia-container-toolkit nonfree-kmod-nvidia \
+            PLATFORM=linux/amd64 \
+            USERNAME="${{ github.actor }}" \
+            TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
+            PUSH="true"
+          echo "linux-firmware-version=$(grep 'LINUX_FIRMWARE_VERSION:' Pkgfile | sed -E 's/.*"([^"]+)".*/\1/')" >> $GITHUB_OUTPUT
+          echo "nvidia-driver-version=$(grep 'NVIDIA_DRIVER_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([^"]+).*/\1/')" >> $GITHUB_OUTPUT
+          echo "container-toolkit-version=$(grep 'CONTAINER_TOOLKIT_VERSION:' nvidia-gpu/vars.yaml | sed -E 's/.*: ([^"]+).*/\1/')" >> $GITHUB_OUTPUT
+
   build-installer:
     needs: [ check-releases, build-kernel ]
     if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
@@ -210,41 +290,8 @@ jobs:
             PKG_KERNEL="ghcr.io/${{ github.actor }}/kernel:${{ needs.check-releases.outputs.talosReleaseTag }}" \
             PUSH="true"
 
-  build-boot-assets:
-    needs: [ check-releases, build-installer ]
-    if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
-    name: Build boot assets
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    container:
-      image: ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }}
-      options: --privileged
-      volumes:
-        - /dev:/dev
-
-    steps:
-      - name: Build amd64 installer with AMD Ucode & NVIDIA (non-free)
-        run: |
-          /bin/imager installer \
-            --arch amd64 \
-            --base-installer-image ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }} \
-            --system-extension-image ghcr.io/siderolabs/amd-ucode:${{ env.AMD_UCODE_VERSION }} \
-            --system-extension-image ghcr.io/themicknugget/nonfree-kmod-nvidia:${{ env.NONFREE_KMOD_NVIDIA_VERSION }} \
-            --system-extension-image ghcr.io/siderolabs/nvidia-container-toolkit:${{ env.NVIDIA_CONTAINER_TOOLKIT_VERSION }}
-
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: talos-installer
-          path: /out/installer-amd64.tar
-          if-no-files-found: error
-          retention-days: 1
-
   push-installer-image:
-    needs: [ check-releases, build-boot-assets ]
+    needs: [ check-releases, build-kernel, build-installer ]
     name: Push installer image
     runs-on: ubuntu-latest
 
@@ -280,96 +327,38 @@ jobs:
             /tmp/talos-build-assets/installer-amd64.tar \
             ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }}
 
-  build-extensions:
-    needs: [ check-releases ]
-    if: needs.check-releases.outputs.newTalosReleaseFound || github.event_name == 'workflow_dispatch'
-    name: Build talos extensions
+  build-boot-assets:
+    needs: [ check-releases, build-kernel, build-extensions ]
+    if: github.event_name == 'workflow_dispatch'
+    name: Build boot assets
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
-      packages: write
+      contents: write
+
+    container:
+      image: ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }}
+      options: --privileged
+      volumes:
+        - /dev:/dev
 
     steps:
-      - name: Generate Token
-        uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: "${{ secrets.BOT_APP_ID }}"
-          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
-
-      - name: Get extensions release tag
-        id: extensions-release
+      - name: Build amd64 installer with AMD Ucode & NVIDIA (non-free)
         run: |
-          release=release-$(grep -Eo '[0-9]\.[0-9]+' <<< '${{ needs.check-releases.outputs.talosReleaseTag }}')
-          echo "release=$release" >> $GITHUB_OUTPUT
+          /bin/imager installer \
+            --arch amd64 \
+            --base-installer-image ghcr.io/${{ github.actor }}/installer:${{ needs.check-releases.outputs.talosReleaseTag }} \
+            --system-extension-image ghcr.io/themicknugget/amd-ucode:${{ needs.build-extensions.outputs.linux-firmware-version }} \
+            --system-extension-image ghcr.io/themicknugget/nonfree-kmod-nvidia:${{ needs.build-extensions.outputs.nvidia-driver-version }}-${{ needs.check-releases.outputs.talosReleaseTag }} \
+            --system-extension-image ghcr.io/themicknugget/nvidia-container-toolkit:${{ needs.build-extensions.outputs.nvidia-driver-version }}-${{ needs.build-extensions.outputs.container-toolkit-version }}
 
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v3
         with:
-          repository: siderolabs/extensions
-          ref: ${{ steps.extensions-release.outputs.release }}
-          token: ${{ steps.app-token.outputs.token }}
-          fetch-depth: 0
-
-      - name: Checkout patches
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.sha }}
-          token: ${{ steps.app-token.outputs.token }}
-          path: patches
-          sparse-checkout: patches/extensions
-          sparse-checkout-cone-mode: false
-
-      - name: Apply patches
-        run: |
-          while IFS= read -r file; do
-            echo "==> Adding $file"
-            git apply -v $file
-          done < <(find "./patches/patches/extensions" -type f -name "*.patch" | sort)
-
-      - name: Maximize build space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build extensions
-        run: |
-          make 
-            PLATFORM=linux/amd64 \
-            USERNAME="${{ github.actor }}" \
-            TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
-
-      - name: Build nonfree extensions
-        run: |
-          make nonfree
-            PLATFORM=linux/amd64 \
-            USERNAME="${{ github.actor }}" \
-            TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
-
-      - name: Build extension packages
-        run: |
-          make extensions
-            PLATFORM=linux/amd64 \
-            USERNAME="${{ github.actor }}" \
-            TAG="${{ needs.check-releases.outputs.talosReleaseTag }}" \
-            PUSH="true"
+          name: talos-installer
+          path: /out/installer-amd64.tar
+          if-no-files-found: error
+          retention-days: 1
 
   create-release:
     needs: [ check-releases, push-installer-image ]

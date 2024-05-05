@@ -114,13 +114,6 @@ jobs:
             git apply -v $file
           done < <(find "./patches/patches/extensions" -type f -name "*.patch" | sort)
 
-      # - name: Maximize build space
-      #   uses: jlumbroso/free-disk-space@main
-      #   with:
-      #     large-packages: true
-      #     docker-images: true
-      #     swap-storage: true
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
